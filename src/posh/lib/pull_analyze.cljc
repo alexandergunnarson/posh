@@ -1,5 +1,6 @@
 (ns posh.lib.pull-analyze
-  (:require [posh.lib.util :as util]
+  (:require [clojure.walk :refer [postwalk]]
+            [posh.lib.util :as util]
             [posh.lib.datom-matcher :as dm]))
 
 (defn reverse-lookup? [attr]
@@ -122,8 +123,7 @@
   (second limit-spec))
 
 (def remove-limits
-  (partial
-   clojure.walk/postwalk (fn [x] (if (limit-spec? x) (limit-attr x) x))))
+  (partial postwalk (fn [x] (if (limit-spec? x) (limit-attr x) x))))
 
 (defn recursive-val? [v]
   (or (number? v) (= v '...)))
@@ -201,7 +201,7 @@
                   prepped-pull-pattern
                   affected-datoms
                   true))}}))))))))
- 
+
 (defn pull-many-analyze [dcfg retrieve {:keys [db schema db-id]} pull-pattern ent-ids]
   (when-not (empty? retrieve)
     (let [resolved-ent-ids (map #((:entid dcfg) db %) ent-ids)

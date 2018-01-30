@@ -1,9 +1,10 @@
 (ns posh.lib.q-analyze
   (:require
+   [clojure.walk :refer [postwalk]]
    [posh.lib.util :as util]
    [posh.lib.datom-matcher :as dm]
    [posh.lib.pull-analyze :as pa]
-   #?(:clj [clojure.core.match :refer [match]]
+   #?(:clj  [clojure.core.match :refer [match]]
       :cljs [cljs.core.match :refer-macros [match]])))
 
 ;;;;;;;;; Q-datoms  -- gets datoms for a query
@@ -310,9 +311,9 @@
 
 (defn replace-find-pulls [qfind]
   "replaces pulls in query's :find with just their eid symbol"
-  (clojure.walk/postwalk (fn [x] (if (pull-pattern? x)
-                                  (second x)
-                                  x)) qfind))
+  (postwalk (fn [x] (if (pull-pattern? x)
+                        (second x)
+                        x)) qfind))
 
 (defn get-pull-var-pairs [qfind]
   "returns map of any vars and their pull commands in the :find"
@@ -435,14 +436,13 @@
          (when (some #{:patterns} retrieve)
            (let
                [in-vars      (get-input-sets (:in qm) args)
-                eavs-ins     (clojure.walk/postwalk
-                              #(if-let [v (in-vars %)] v %) eavs)
+                eavs-ins     (postwalk #(if-let [v (in-vars %)] v %) eavs)
                 qvar-count   (count-qvars eavs-ins)
                 linked-qvars (set (remove nil? (map (fn [[k v]] (if (> v 1) k)) qvar-count)))
                 rvars        (zipmap
                               vars
                               (stack-vectors r))
-                prepped-eavs (clojure.walk/postwalk
+                prepped-eavs (postwalk
                               #(if (and (qvar? %) (not (linked-qvars %))) '_ %)
                               eavs-ins)]
              {:patterns (patterns-from-eavs dbvarmap rvars prepped-eavs)})))))))
@@ -510,15 +510,14 @@
             rvars        (zipmap
                           vars
                           (stack-vectors r))
-            prepped-eavs (clojure.walk/postwalk
+            prepped-eavs (postwalk
                           #(if (and (qvar? %) (not (linked-qvars %))) '_ %)
                           eavs-ins)]
          (merge
           (when (some #{:simple-patterns} retrieve)
             {:patterns
              (patterns-from-eavs dbvarmap rvars
-                                 (clojure.walk/postwalk #(if (qvar? %) '_ %)
-                                                        eavs-ins))})
+                                 (postwalk #(if (qvar? %) '_ %) eavs-ins))})
           (when (some #{:patterns} retrieve)
             {:patterns (patterns-from-eavs dbvarmap rvars prepped-eavs)
              :linked   linked-qvars})

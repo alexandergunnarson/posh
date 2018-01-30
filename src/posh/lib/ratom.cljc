@@ -78,27 +78,27 @@
 #?(:clj
 (defmacro add! [x v]
   (if-cljs &env `(.push ~x ~v)
-                `(.add ~(with-meta x {:tag 'java.util.ArrayList}) ~v))))
+                `(.add ~(with-meta x {:tag "java.util.ArrayList"}) ~v))))
 
 #?(:clj
 (defmacro array-list [& args]
-  (if-cljs &env `(array ~@args)
+  (if-cljs &env `(cljs.core/array ~@args)
                 `(doto (ArrayList.) ~@(for [arg args] `(.add ~arg))))))
 
 #?(:clj
 (defmacro alength* [x]
   (if-cljs &env `(alength ~x)
-                `(.size ~(with-meta x {:tag 'java.util.ArrayList})))))
+                `(.size ~(with-meta x {:tag "java.util.ArrayList"})))))
 
 #?(:clj
 (defmacro aget* [x i]
-  (if-cljs &env `(aget ~x)
-                `(.get ~(with-meta x {:tag 'java.util.ArrayList}) ~i))))
+  (if-cljs &env `(aget ~x ~i)
+                `(.get ~(with-meta x {:tag "java.util.ArrayList"}) ~i))))
 
 #?(:clj
 (defmacro aset* [x i v]
   (if-cljs &env `(aset ~x ~i ~v)
-                `(.set ~(with-meta x {:tag 'java.util.ArrayList}) ~i ~v))))
+                `(.set ~(with-meta x {:tag "java.util.ArrayList"}) ~i ~v))))
 
 ;;; Interfaces and (certain) types
 
@@ -156,7 +156,7 @@
 
 ;;; Logging
 
-#?(:clj (defn dev? [] false)) ; TODO CLJ
+(defn dev? [] false)
 
 ;;; Vars
 
@@ -247,7 +247,8 @@
   (when (nil? (getm rea-queue))
     (setm! rea-queue (array-list))
     #_(:cljs (reagent.impl.batching/schedule)))
-  (add! (getm rea-queue) r))
+  (let [rea-queue-value (getm rea-queue)]
+    (add! rea-queue-value r)))
 
 (defn flush! []
   (loop []
@@ -546,9 +547,8 @@
             ^:unsynchronized-mutable ratomGeneration
             ^:unsynchronized-mutable watchesArr]
      :cljs [f ^:mutable state
-            ^:mutable
-            ^boolean dirty?
-            ^boolean no-cache?
+            ^:mutable ^boolean dirty?
+            ^:mutable ^boolean no-cache?
             ^:mutable watching
             ^:mutable watches
             ^:mutable autoRun
@@ -796,7 +796,7 @@
   (#?(:clj deref :cljs -deref) [this]
     (when (dev?)
       (when (and changed (some? *ratom-context*))
-        (#?(:clj println :cljs warn) "derefing stale wrap: "
+        (#?(:clj println :cljs js/console.warn) "derefing stale wrap: "
               (pr-str this))))
     state)
 
